@@ -1,0 +1,20 @@
+{
+  "_comment": "Team-wide defaults shipped with the plugin. Lowest-priority config layer: a project .figma-design/config.json and ~/.claude/figma-design-generator/config.json both override this. To pin the team's default library, run /figma-library-setup once, copy the resolved libraryKey/libraryName here, bump the plugin version and push.",
+  "library": {
+    "libraryKey": null,
+    "libraryName": null,
+    "libraryFileKey": null
+  },
+  "desktop": {
+    "frameWidth": 1440,
+    "contentMaxWidth": 1200,
+    "sectionPaddingY": 120,
+    "sectionPaddingX": 120,
+    "gridColumns": 12,
+    "gridGutter": 24,
+    "sectionNamePrefix": "Section / "
+  },
+  "images": {
+    "strategy": "placeholder"
+  }
+}

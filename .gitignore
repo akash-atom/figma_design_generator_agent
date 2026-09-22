@@ -1,0 +1,4 @@
+.figma-design/
+.DS_Store
+__pycache__/
+*.pyc

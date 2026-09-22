@@ -1,0 +1,18 @@
+{
+  "name": "figma-design-generator",
+  "version": "0.1.0",
+  "description": "Generates desktop Figma designs from Word documents using components from a pinned Figma component library. Wraps the Figma MCP server's own design skills with library pinning, .docx content extraction, and a reviewable section plan.",
+  "author": {
+    "name": "Akash Choudhary"
+  },
+  "repository": "https://github.com/akash-atom/figma_design_generator_agent",
+  "license": "MIT",
+  "keywords": [
+    "figma",
+    "design-system",
+    "docx",
+    "component-library",
+    "design-generation",
+    "atomicwork"
+  ]
+}
