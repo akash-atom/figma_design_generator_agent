@@ -26,7 +26,13 @@ If nothing in the library matches, record it in `library-map.json` → `unmatche
 propose a manual build in the plan. **Do not substitute a component that merely looks
 close** — a detached approximation is worse than an honest gap.
 
-## 2. Position in the document
+## 2. The analyser's proposal
+
+`analysis.json` already ranked the archetypes with reasons. Take its top candidate at
+`high` confidence. At `medium` or `low`, weigh it against what the library actually has —
+a scored `feature-grid` is worthless if the library has no grid component.
+
+## 3. Position in the document
 
 - **First section** with a heading + body + CTA → `hero`.
 - **Last section** with a CTA and little else → `cta-band`, then `footer` if the library
@@ -34,7 +40,7 @@ close** — a detached approximation is worse than an honest gap.
 - A section immediately after the hero holding only logos or a logo placeholder →
   `logo-band`.
 
-## 3. Content shape
+## 4. Content shape
 
 | Shape in the section | Archetype |
 |---|---|
@@ -48,7 +54,7 @@ close** — a detached approximation is worse than an honest gap.
 | heading + `cta` role only | `cta-band` |
 | headings with nested subsections | one section per subsection, not one giant section |
 
-## 4. Content mapping rules
+## 5. Content mapping rules
 
 Once the component is chosen, map roles to its TEXT properties using the `properties` map
 in `library-map.json`:
@@ -73,7 +79,7 @@ heading, following paragraph → body, a trailing short imperative sentence → 
 visible copy. Notes are layout direction — "On the left: ServiceNow and JSM logos" means
 choose the left-aligned variant and put those logos there.
 
-## 5. Variant selection
+## 6. Variant selection
 
 Prefer the variant the content justifies over the component's default:
 

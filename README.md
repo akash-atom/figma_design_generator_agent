@@ -46,50 +46,55 @@ Related:
    read straight off the existing work.
 3. **Extract** — `.docx` → `.figma-design/content.json`, with images pulled out to
    `.figma-design/assets/`.
-4. **Plan** — a section-by-section table of which component and variant fills each section,
-   and which text goes where. **You approve this before anything is written to Figma.**
-5. **Build** — a 1440px frame of real library component instances, with colours and spacing
+4. **Design** — the content is analysed into sections, each scored against ten layout
+   archetypes with reasons, plus split suggestions and page-level notes (no hero, no CTA,
+   no visual relief, two identical bands in a row). Blog posts are detected and laid out
+   as articles rather than marketing pages.
+5. **Plan** — a section-by-section table of the component and variant chosen for each, and
+   which copy goes in which slot, **presented as decisions with reasons.** You approve it
+   before anything is written to Figma.
+6. **Build** — a 1440px frame of real library component instances, with colours and spacing
    bound to library variables.
-6. **Validate** — one screenshot pass for clipped text, wrong variants, leftover
+7. **Validate** — one screenshot pass for clipped text, wrong variants, leftover
    placeholders and the wrong font.
 
-## The document format
+## What the writer has to do
 
-**Writing the docs? Read [DOC-FORMAT.md](DOC-FORMAT.md)** — that's the page you send
-colleagues. Start from [templates/page-spec-template.docx](templates/page-spec-template.docx),
-or see [templates/page-spec-example.docx](templates/page-spec-example.docx) filled in.
+**Write the content. Nothing else.** No headings, no markup, no layout decisions — a
+document of plain typed copy is the expected input, and the design is worked out from it:
 
-In short: structure lives in plain text labels, so the doc stays readable as a document.
+- where the sections start and end, even with no headings at all
+- what each section should be (hero, card grid, stat band, quote, closing CTA...)
+- when a section is really two, and splitting it
+- when a run of prose paragraphs is actually a set of cards
+- which library component fits, and which copy goes in which slot
+- whether the document is a page at all, or a blog post that wants an article layout
 
-```
-Page: Employee self-service
+Send writers to **[DOC-FORMAT.md](DOC-FORMAT.md)**. It's one page, and most of it is about
+writing well rather than formatting.
 
-SECTION 1:
-Layout: hero
-Tag: Employee self-service
-Heading: Delightful employee service, delivered autonomously
-Description: Offer instant help round-the-clock…
-Button: Get a demo
-<logo grid>
-```
+Two guarantees it makes on their behalf: **copy is never rewritten to fit a component**
+(a component that fits is chosen instead, or a specific edit is proposed and confirmed),
+and **nothing is invented** — no filler headlines, no "Learn more" buttons they didn't
+write.
 
-`SECTION n:` splits sections. `Layout:` names the archetype (`hero`, `feature-grid`,
-`quote`, `cta-band`, …) and is the strongest signal you can give. `Label:` lines assign a
-role (`Tag`, `Heading`, `Description`, `Button`, `Quote`, `Stat`, `Note`, …). `<angle
-brackets>` name a component, matched against your library. `SEO title:`/`Meta description:`
-are treated as metadata and kept out of the design.
-
-Check a doc before generating from it:
+Check a document has enough to work with:
 
 ```bash
 python3 plugin/skills/figma-design-from-doc/scripts/check_doc.py "My page.docx"
 ```
 
-It reports what's missing and how to fix it, and exits 1 on errors so it can gate a
-workflow. The skill runs it automatically.
+It reports only what a writer controls — thin content, a section with no opening line,
+placeholder text, a paragraph too long to lay out, a linked image — and says nothing about
+layout. Exits 1 on errors so it can gate a workflow. The skill runs it automatically.
 
-**Long-form docs** (blog posts, articles) need none of this — use real Word heading styles
-and structure is read from those. H1 becomes the hero, each H2 a section.
+### Optional markup, for when you do have a layout in mind
+
+A `Layout: feature-grid` line on a section, or a `<logo grid>` placeholder, overrides the
+inferred choice. Use it on one section or none; it is never required. Full reference:
+[references/doc-format.md](plugin/skills/figma-design-from-doc/references/doc-format.md),
+with a fill-in template at
+[templates/page-spec-template.docx](templates/page-spec-template.docx).
 
 Google Docs `.docx` exports work, including the ones whose internal document part is
 `word/document2.xml`. Legacy `.doc` does not — re-save as `.docx`.
@@ -118,13 +123,15 @@ plugin/
     ├── figma-design-from-doc/      the pipeline
     │   ├── SKILL.md
     │   ├── references/
-    │   │   ├── doc-format.md       canonical page spec format
+    │   │   ├── inference.md        content → design decisions (the design brain)
     │   │   ├── content-model.md    content.json schema
-    │   │   ├── section-mapping.md  archetype selection rules
-    │   │   └── desktop-conventions.md
+    │   │   ├── section-mapping.md  archetype → component mapping
+    │   │   ├── desktop-conventions.md
+    │   │   └── doc-format.md       optional markup reference
     │   └── scripts/
     │       ├── docx_extract.py     .docx → structured JSON (stdlib only)
-    │       ├── check_doc.py        lints a doc against the format
+    │       ├── analyze_content.py  sections + archetype proposals with reasons
+    │       ├── check_doc.py        content readiness (--format for the markup)
     │       └── dgconfig.py         config layering + cache state
     └── figma-library-setup/        library picker
 ```

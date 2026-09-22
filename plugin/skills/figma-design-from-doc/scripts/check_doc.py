@@ -1,14 +1,27 @@
 #!/usr/bin/env python3
-"""Check a .docx against the page spec format in references/doc-format.md.
+"""Check whether a .docx has what it needs to become a good page design.
 
 Standard library only. Reuses docx_extract.py, so what it checks is exactly what
 the design generator will see.
 
-Usage:
-    check_doc.py DOC.docx [--json] [--strict]
+Two modes:
 
-Exit codes: 0 clean (or warnings only), 1 errors found, 2 could not read the file.
-Use --strict to fail on warnings too.
+  content (default)  Checks what a WRITER controls and cares about: is there
+                     enough content, does each section have an opening line, is
+                     there a closing ask, is any copy too long to lay out, is
+                     anything still a placeholder. Says nothing about layout --
+                     the agent decides that.
+
+  --format           Additionally checks the optional page spec format
+                     (references/doc-format.md): Page:, SECTION n:, Layout: and
+                     the labelled lines. Only for authors who choose to mark
+                     their documents up.
+
+Usage:
+    check_doc.py DOC.docx [--format] [--json] [--strict]
+
+Exit codes: 0 clean (or warnings only), 1 errors found, 2 could not read the
+file. --strict fails on warnings too.
 """
 
 import argparse
@@ -20,6 +33,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from analyze_content import analyse  # noqa: E402
 from docx_extract import (  # noqa: E402
     Docx, LAYOUTS, build_sections, detect_structure, parse_body)
 
@@ -183,6 +197,93 @@ def check_section(sec, rep):
                       "image URLs.")
 
 
+def check_content_readiness(model, rep, analysis):
+    """What a writer can actually act on. No layout opinions."""
+    rows = analysis["sections"]
+    total_words = sum(r["signals"]["wordCount"] for r in rows)
+
+    if not rows:
+        rep.error("document", "No page content found.",
+                  "The document appears to be empty, or contains only "
+                  "metadata and notes.")
+        return
+    if total_words < 60:
+        rep.error("document",
+                  "Only %d words of content across %d section(s)."
+                  % (total_words, len(rows)),
+                  "There isn't enough copy to build a page from. Write the "
+                  "sections out first.")
+    elif len(rows) < 2:
+        rep.warn("document", "The document has one section.",
+                 "A page usually needs several. Add the other sections, or "
+                 "expect a single band.")
+
+    for row in rows:
+        where = "section %d%s" % (
+            row["n"], " (%s)" % row["heading"][:34] if row["heading"] else "")
+        sig = row["signals"]
+
+        if not row["heading"]:
+            rep.warn(where, "No opening line to use as a headline.",
+                     "Start the section with a short line naming what it is "
+                     "about. It doesn't need to be styled as a heading.")
+        elif looks_placeholder(row["heading"]):
+            rep.error(where, "Headline is placeholder copy (%r)."
+                      % row["heading"],
+                      "Write the real line. 'TBD' will be built into the "
+                      "design as written.")
+
+        if sig["longestParagraphWords"] > 220:
+            rep.warn(where,
+                     "Longest paragraph is %d words."
+                     % sig["longestParagraphWords"],
+                     "No card or band component holds that much copy. It will "
+                     "be laid out as a prose block, or you can break it up.")
+
+        n = sig["listItemCount"]
+        if n >= 3 and not sig["listItemsParallel"]:
+            rep.warn(where,
+                     "%d list items of very uneven length." % n,
+                     "Even them up if they should read as a set -- uneven "
+                     "items look broken in a grid. Otherwise they'll be "
+                     "stacked instead.")
+        if n > 10:
+            rep.warn(where, "%d items in one section." % n,
+                     "Consider splitting into two sections; this will "
+                     "otherwise become a long collapsed list.")
+
+        for block in row.get("_blocks", []):
+            if block.get("externalUrl"):
+                rep.error(where, "Image is linked, not pasted (%s)."
+                          % block["externalUrl"][:50],
+                          "Paste the image into the document. A linked image "
+                          "cannot be pulled into Figma.")
+            if block["type"] == "paragraph" and looks_placeholder(
+                    block.get("value") or block.get("text", "")):
+                rep.warn(where, "Placeholder copy: %r"
+                         % (block.get("text", "")[:50]),
+                         "Replace it, or delete the line so the section is "
+                         "reported as incomplete rather than shipping 'TBD'.")
+
+    if not any(r["signals"]["explicitCtas"] or r["signals"]["closingImperative"]
+               for r in rows):
+        rep.warn("document", "The page never asks the reader to do anything.",
+                 "Add a closing line like 'Get a demo' or 'Start a trial'. "
+                 "Without it no button will be added -- none will be "
+                 "invented for you.")
+
+    kind = analysis["documentKind"]
+    if kind == "article":
+        rep.note("document",
+                 "Reads as long-form (%s). It will be built as an article -- "
+                 "a title and a single column of copy -- not as a page of "
+                 "sections." % analysis["documentKindReason"].rstrip("."))
+    elif kind == "mixed":
+        rep.note("document",
+                 "Part structured page, part long-form copy. The agent will "
+                 "pick one treatment and say which.")
+
+
 def check_structure(model, rep):
     structure = model["structure"]
     if structure == "headings":
@@ -209,15 +310,16 @@ def check_structure(model, rep):
     return True
 
 
-def render(rep, model, page, labelled):
+def render(rep, model, page, labelled, analysis, fmt):
     out = []
     out.append("Document: %s" % os.path.basename(model["source"]))
-    out.append("Structure: %s%s" % (
-        model["structure"],
-        "  (page spec)" if labelled else "  (long-form)"))
+    out.append("Checking: %s" % ("content readiness + page spec format" if fmt
+                                 else "content readiness"))
+    out.append("Reads as: %s" % analysis["documentKind"])
     if page:
         out.append("Page name: %s" % page)
-    out.append("Sections: %d" % len(model["sections"]))
+    out.append("Sections: %d (%s)" % (len(analysis["sections"]),
+                                      analysis["sectioningBasis"]))
     out.append("")
 
     for kind, items, symbol in (("ERROR", rep.errors, "x"),
@@ -237,13 +339,13 @@ def render(rep, model, page, labelled):
         out.append("")
 
     if not rep.errors and not rep.warnings:
-        out.append("Clean -- this document is ready to generate from.")
+        out.append("Ready -- there is enough here to design a page from.")
     elif not rep.errors:
-        out.append("No errors. The warnings above are places the design will "
-                   "be guessed at rather than specified.")
+        out.append("No errors. The warnings are places the design will have "
+                   "to compromise; none of them block generation.")
     else:
-        out.append("Fix the errors above before generating. See "
-                   "references/doc-format.md for the format.")
+        out.append("Fix the errors above first -- they are about missing or "
+                   "unusable content, not about formatting.")
     return "\n".join(out)
 
 
@@ -252,6 +354,8 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("input", help="path to the .docx file")
+    ap.add_argument("--format", action="store_true", dest="fmt",
+                    help="also check the optional page spec format")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     ap.add_argument("--strict", action="store_true", help="fail on warnings too")
     args = ap.parse_args()
@@ -276,36 +380,45 @@ def main():
         "sections": build_sections(blocks, structure),
     }
 
+    analysis = analyse(model, keep_blocks=True)
+
     rep = Report()
-    labelled = check_structure(model, rep)
-    page = check_page_header(model, rep) if labelled else None
-    if labelled:
-        real = [s for s in model["sections"]
-                if s.get("kind") != "preamble"]
-        for sec in real:
-            check_section(sec, rep)
-        missing = [section_label(s) for s in real
-                   if not s.get("layoutDeclared")]
-        if missing:
-            rep.warn("document",
-                     "No 'Layout:' line in %d of %d sections (%s) -- their "
-                     "archetypes will be inferred from content shape."
-                     % (len(missing), len(real), ", ".join(missing)),
-                     "Add 'Layout: <archetype>' to each. Options: %s."
-                     % ", ".join(LAYOUTS))
+    check_content_readiness(model, rep, analysis)
+
+    page, labelled = None, model["structure"] == "section-markers"
+    if args.fmt:
+        labelled = check_structure(model, rep)
+        page = check_page_header(model, rep) if labelled else None
+        if labelled:
+            real = [s for s in model["sections"]
+                    if s.get("kind") != "preamble"]
+            for sec in real:
+                check_section(sec, rep)
+            missing = [section_label(s) for s in real
+                       if not s.get("layoutDeclared")]
+            if missing:
+                rep.note("document",
+                         "No 'Layout:' line in %d of %d sections (%s). "
+                         "Optional -- the archetype is inferred from the "
+                         "content. Add it only where you want to override "
+                         "that choice. Options: %s."
+                         % (len(missing), len(real), ", ".join(missing),
+                            ", ".join(LAYOUTS)))
 
     if args.json:
         print(json.dumps({
             "document": model["source"],
             "structure": structure,
+            "documentKind": analysis["documentKind"],
+            "mode": "format" if args.fmt else "content",
             "pageName": page,
-            "sectionCount": len(model["sections"]),
+            "sectionCount": len(analysis["sections"]),
             "errors": rep.errors,
             "warnings": rep.warnings,
             "notes": rep.notes,
         }, indent=2))
     else:
-        print(render(rep, model, page, labelled))
+        print(render(rep, model, page, labelled, analysis, args.fmt))
 
     if rep.errors:
         return 1

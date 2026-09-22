@@ -1,12 +1,23 @@
 ---
 name: figma-design-from-doc
-description: "Generate a desktop Figma design from a Word document using components from a pinned Figma component library. Use when the user wants to turn a .docx page spec, brief, blog post or content outline into a Figma layout, mock up a page from written content, or build a web page design in Figma from a document. Triggers on 'build this doc in Figma', 'generate a Figma design from this document', 'turn this Word doc into a design', 'design this page spec', or when a .docx is supplied alongside a Figma file or library."
+description: "Design a desktop Figma page from a Word document, making all the layout decisions so the writer doesn't have to. Reads the content, works out the sections and the right component for each, then builds it from a pinned Figma component library. Use when the user wants to turn a .docx brief, page spec, blog post, content outline or raw copy into a Figma design, mock up a page from written content, or build a web page design in Figma from a document. Triggers on 'build this doc in Figma', 'generate a Figma design from this document', 'turn this Word doc into a design', 'design this content', 'make a page from this copy', or when a .docx is supplied alongside a Figma file or library."
 ---
 
 # Desktop Figma design from a Word document
 
 Turns a `.docx` into a 1440px desktop Figma frame assembled from a pinned component
 library. You orchestrate; the Figma MCP server's own skills do the canvas work.
+
+**The writer supplies content. You supply every design decision.** Documents arrive as
+plain copy with no markup, and that is the expected case — not a problem to be corrected.
+Work out the sections, the archetypes and the component for each yourself.
+
+Two rules govern the whole pipeline, and `references/inference.md` is where they are
+worked out:
+
+> **Decide about design. Ask about copy.** Layout, archetype, variant, order and splitting
+> are yours to decide — state what you chose and why. The writer's words are theirs:
+> never silently rewrite, shorten, retitle or invent copy to make it fit a component.
 
 **Scripts live at `$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/`.** If that
 variable is unset, resolve the path relative to this file. Both scripts are stdlib-only
@@ -57,24 +68,28 @@ python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/docx_extract.p
 Read the printed outline — do **not** read the whole JSON into context. Pull specific
 sections out with `python3 -c` or `jq` as you need them.
 
-Then check the document against the page spec format:
+Then check that there is enough content to design from:
 
 ```bash
 python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/check_doc.py" \
   "<path/to/doc.docx>"
 ```
 
-- **Errors** (exit 1) — report them to the user with the linter's suggested fixes and ask
-  whether to fix the document or proceed anyway. Don't silently build from a doc with
-  errors; a missing `Heading:` becomes a missing headline in the design.
-- **Warnings** — carry them into the Step 4 plan as the places you had to guess. A "no
-  `Layout:`" warning is exactly where your archetype choice needs the user's eye.
-- **Long-form note** — the doc uses Word headings rather than the labelled format. That's
-  expected for blog posts; proceed.
+This checks only what the **writer** controls — enough copy, an opening line per section,
+a closing ask, no placeholder text, pasted rather than linked images. It says nothing
+about layout.
 
-The authoring format is `references/doc-format.md`. When a document doesn't follow it,
-point the user at that file (or at `templates/page-spec-template.docx` in the repo) rather
-than explaining the format from scratch.
+- **Errors** (exit 1) — missing or unusable content. Report them and ask how to proceed.
+- **Warnings** — compromises the design will have to make. Carry them into the Step 4 plan.
+- Nothing here is about formatting. **Never tell the writer to restructure their document
+  to suit the tool.**
+
+Add `--format` only if the user has opted into the optional markup in
+`references/doc-format.md` and wants it validated.
+
+The document's structure (`section-markers`, `headings`, `flat`) tells you where the
+section boundaries come from. `flat` — no headings, no markers, just typed paragraphs — is
+a perfectly normal input; Step 3 infers the boundaries.
 
 The script reports a `structure`, which tells you how to read the document:
 
@@ -100,7 +115,37 @@ input you have — use them over your own judgement about what a section should 
 Blocks tagged `role: "meta"` (SEO title, slug, meta description) are **not page content** —
 exclude them from the design.
 
-## Step 3 — Build or reuse the library map
+## Step 3 — Work out the design
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/analyze_content.py" \
+  .figma-design/content.json --out .figma-design/analysis.json
+```
+
+**Read `references/inference.md` before interpreting the output.** It is the decision
+guide: how to read the signals, how to fill component slots from unlabelled prose, when to
+split or merge sections, and what to do with copy no component can hold.
+
+The analyser proposes a section list with a ranked archetype per section, scored reasons,
+split suggestions and page-level notes. It is a proposal — it measures the shape of the
+writing and cannot see your component library. Override any row the library contradicts,
+and say that you did.
+
+Three outputs decide the rest of the run:
+
+- **`documentKind`** — `article` means long-form prose with no call to action. **Do not
+  build it as a marketing page**; build a title block and a single measure-constrained
+  column of copy, and say that's what you read it as. `marketing-page` gets the full band
+  treatment. `mixed` — pick one and say which.
+- **`pageNotes`** — whole-page problems: no hero, no CTA, no visual relief, adjacent
+  duplicate bands, sections too heavy for any component.
+- **`confidence`** per section — `low` rows are the ones to decide from the library and
+  the neighbouring sections rather than from the score.
+
+Use the archetypes this produces to derive the `search_design_system` query terms in
+Step 4 — that keeps the search scoped to what the page actually needs.
+
+## Step 4 — Build or reuse the library map
 
 ```bash
 python3 .../dgconfig.py cache-status
@@ -147,7 +192,7 @@ Write the result to `.figma-design/library-map.json`:
 
 This cache is what makes the second run fast. Keep `unmatched` honest — it feeds Step 4.
 
-## Step 4 — Write the section plan and get approval
+## Step 5 — Write the section plan and get approval
 
 Write `.figma-design/design-plan.md`, one row per page section:
 
@@ -158,29 +203,40 @@ Write `.figma-design/design-plan.md`, one row per page section:
 Archetypes to choose from: `hero`, `logo-band`, `feature-grid`, `feature-split`,
 `stat-band`, `quote`, `accordion`, `table`, `cta-band`, `footer`.
 
-Resolve each section's archetype in this order:
+Take the archetypes from Step 3's analysis. Resolve each section in this order:
 
-1. **`section.layout`** — the author's own `Layout:` line, already normalised. When it is
-   set, use it. Don't second-guess it from the content.
+1. **`section.layout`** — an explicit `Layout:` line, if the author wrote one. Honour it.
 2. **`section.placeholders`** — `<logo grid>` names the component.
-3. **Content shape** — the fallback (see `references/section-mapping.md`).
+3. **The analyser's top candidate** where `confidence` is `high`.
+4. **Your own reading** of `signals` against the library for `medium` and `low`, per
+   `references/inference.md`.
 
-`section.layoutDeclared` with a null `section.layout` means the author wrote a `Layout:`
-value that isn't a known archetype; the linter already flagged it — say which section and
-fall through to rule 2.
+Apply the analyser's `split` suggestions and `pageNotes` here: split a section that holds
+both copy and a visual, vary adjacent duplicate bands, and alternate surfaces so bands
+read as distinct.
+
+Write each row as a **decision with its reason**, not as a question:
+
+> 3 → feature-grid (`Cards / Feature`, Variant=3-up). Six parallel paragraphs averaging
+> 18 words read as cards; split each on its first full stop into title and body.
 
 Then list, explicitly:
 
 - Sections with **no component match** and the manual-build fallback you propose.
+- Any copy that **cannot fit** the component you chose, with the specific edit you would
+  make — before and after. **Wait for a yes on these.** Never trim a headline, summarise a
+  paragraph or invent a button label to make the layout work.
+- Anything the analyser flagged at `low` confidence, and what you decided instead.
 - Every image: `use_figma` **cannot fetch external image URLs**. For each extracted image in
   `.figma-design/assets/`, say whether you will `upload_assets` it or leave a labelled
   placeholder frame. Never silently leave a blank.
 - Content you are dropping (meta blocks, author notes) and why.
 
 **Stop here. Show the table and wait for the user's go-ahead.** Fixes are free now and
-expensive once the canvas is written.
+expensive once the canvas is written. Present the design decisions as made — the user can
+overrule any of them — and block only on the copy questions above.
 
-## Step 5 — Build
+## Step 6 — Build
 
 Load both Figma skills via `ReadMcpResourceTool` on `figma-remote-mcp`:
 
@@ -201,7 +257,7 @@ call. Then follow their Steps 3–4, with this project's desktop conventions fro
   by assigning `node.characters`.
 - Set `layoutSizingHorizontal = "FILL"` **after** appending, not before.
 
-## Step 6 — Validate
+## Step 7 — Validate
 
 One `get_screenshot` of the wrapper frame. Check for:
 
@@ -219,8 +275,11 @@ count, and anything you left as a placeholder or could not map.
 
 ## References
 
-- `references/doc-format.md` — the page spec format documents should follow
+- `references/inference.md` — **read this before Step 3.** How to turn content into design
+  decisions, and the rules on not rewriting the writer's copy
 - `references/content-model.md` — the `content.json` schema and its edge cases
+- `references/doc-format.md` — the *optional* markup an author can add to override your
+  choices. Never required
 - `references/section-mapping.md` — archetype selection rules
 - `references/desktop-conventions.md` — frame sizing, spacing rhythm, naming
 
@@ -229,10 +288,13 @@ count, and anything you left as a placeholder or could not map.
 - **`.doc` / Pages / Google Docs `.gdoc`** — unsupported. Ask for a `.docx` re-save. The
   extractor already handles Google Docs `.docx` exports, including ones whose main part is
   `word/document2.xml`.
-- **Document has no headings and no `SECTION n:` markers** — `check_doc.py` errors on
-  this. Don't invent structure silently: show the user `references/doc-format.md`, offer
-  `templates/page-spec-template.docx`, and if they want to proceed anyway, propose a
-  sectioning in Step 4 for them to correct.
+- **Document has no headings and no markers** — normal, not an error. The analyser infers
+  section boundaries from paragraph shape. Report the sectioning you inferred in the Step 5
+  plan so the user can correct it. Don't ask them to restructure the document.
+- **Long-form article** — `documentKind: "article"`. Build a title block and a single
+  column of prose, not a page of bands. Say which treatment you chose.
+- **Copy too long for any component** — lay it out at the length it is, or propose a
+  specific cut and wait. Never silently shorten it.
 - **Library has no match for a placeholder** — build it manually from primitives bound to
   library variables, and say so in the final report. Do not substitute a component that
   merely looks close.

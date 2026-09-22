@@ -1,16 +1,21 @@
-# Page spec format
+# Optional page spec markup
 
-The document format `/figma-design-from-doc` builds from. Write it in Google Docs or Word
-and export/save as `.docx`.
+**None of this is required.** Write your content however you normally would and the design
+is worked out from it — sections, layouts and components are all inferred (see
+`inference.md`). Save as `.docx` and that is the whole requirement.
 
-**No special styling is needed.** Structure is carried in plain text labels, so the doc
-stays readable and reviewable as a document. Don't apply Word heading styles to the labels
-— it makes no difference either way.
+This format exists for when you *do* have a layout in mind and want to override those
+choices. Use as much or as little of it as you like: a single `Layout:` line on one
+section is a perfectly good way to use this page.
+
+Structure is carried in plain text labels, so the doc stays readable as a document. No
+special styling is needed.
 
 Check a doc before handing it over:
 
 ```bash
-python3 scripts/check_doc.py "My page.docx"
+python3 scripts/check_doc.py "My page.docx"            # is there enough content?
+python3 scripts/check_doc.py "My page.docx" --format   # is the optional markup valid?
 ```
 
 ---
@@ -112,7 +117,7 @@ but it is a guess.
 
 | Label | Maps to | Notes |
 |---|---|---|
-| `Heading:` | the section headline | **Required in every section** |
+| `Heading:` | the section headline | Overrides the inferred headline |
 | `Tag:` | eyebrow / pill above the heading | Also `Eyebrow:`, `Kicker:` |
 | `Subheading:` | subtitle under the heading | |
 | `Description:` | body copy | Also `Body:`, `Copy:` |
@@ -175,7 +180,9 @@ image itself.
 
 ## Rules that matter
 
-1. **`Page:` once at the top, `Heading:` in every section.** Everything else is optional.
+These apply *if* you use the markup. Without it, none of them do.
+
+1. **`Page:` once at the top** names the Figma frame. Otherwise the document title is used.
 2. **One `SECTION n:` per page section.** Don't stack two sections' worth of content under
    one marker; the layout has no way to split them.
 3. **`Layout:` wherever you know what you want.** It is the difference between the design
@@ -186,12 +193,12 @@ image itself.
 5. **Don't number or letter your own headings.** `Heading: 1. Get started` puts the "1." in
    the design.
 6. **Write final copy, not placeholders.** `Heading: TBD` builds a design that says TBD.
-   Leave the label out entirely and the section is flagged as incomplete instead.
+   This is the one rule that matters whether or not you use the markup.
 7. **Save as `.docx`.** Google Docs → File → Download → Microsoft Word. Legacy `.doc` is
    not supported.
 
 ## Long-form documents
 
-Blog posts and articles don't need any of this. Write them with real Word/Docs heading
-styles — H1 for the title, H2 per section — and the structure is read from those. Only
-page specs need the labelled format.
+Blog posts and articles need none of this, and shouldn't use it. Write them with normal
+heading styles — or with nothing at all — and they are detected as long-form and laid out
+as an article: a title and a single column of copy, rather than a page of bands.

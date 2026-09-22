@@ -41,12 +41,46 @@ distribution.
 - `search_design_system` rejects speculative synonym sweeps. Query terms must be derived
   from the document's actual needs, and always scoped with `includeLibraryKeys`.
 
-## The page spec format
+## The core premise
 
-`plugin/skills/figma-design-from-doc/references/doc-format.md` is the **canonical** format
-spec. Root `DOC-FORMAT.md` is a short pointer for colleagues — keep it a pointer, never a
-second copy of the spec (the `webflow-design-system.md` / synced-skill pair in this user's
-setup is the drift this avoids).
+**The writer supplies content; the agent supplies every design decision.** A document of
+plain typed copy with no headings and no markup is the *expected* input, not a degraded
+one. Anything that pushes design thinking back onto the writer is a regression.
+
+`references/inference.md` is the design brain and the most important file here. Its two
+rules:
+
+> **Decide about design. Ask about copy.** Layout, archetype, variant, order and splitting
+> are the agent's to decide and state. The writer's words are never silently rewritten,
+> shortened, retitled or invented to make copy fit a component.
+
+`scripts/analyze_content.py` is the deterministic half: it extracts measurable signals
+from the writing (list parallelism, metric density, parallel-paragraph runs, closing
+imperatives, paragraph lengths) and scores ten archetypes with explainable reasons. It
+deliberately produces a *proposal*, never a verdict — it cannot see the component library,
+so the model overrides it and says so. Keep every score change accompanied by a reason
+string; the reasons are the interface.
+
+Two signals do most of the work and are easy to break:
+
+- `implicitItemCount` -- runs of `Lead-in. Body.` paragraphs, i.e. cards the writer never
+  bulleted. Computed on *unlabelled* paragraphs only, or a `Heading: X` line reads as a
+  card.
+- Word counts include labelled copy (`Description: ...` is body text) but exclude `meta`,
+  `note`, `layout` and `page` roles. Getting this wrong silently zeroes every shape signal
+  on a marked-up document -- it has already happened once.
+
+`check_doc.py` defaults to **content readiness** (what a writer controls) and only checks
+the optional markup behind `--format`. Never make it error on an unstructured document.
+
+## The optional page spec markup
+
+`plugin/skills/figma-design-from-doc/references/doc-format.md` is the canonical reference
+for the **optional** markup (`Layout:`, `SECTION n:`, labelled lines, `<placeholders>`).
+Root `DOC-FORMAT.md` is the writer-facing page: it leads with "just write the content" and
+demotes the markup to a closing section. Keep it a pointer to the reference, never a
+second copy of it (the `webflow-design-system.md` / synced-skill pair in this user's setup
+is the drift this avoids).
 
 `templates/*.docx` are **generated**, not hand-edited. After changing the format:
 
@@ -59,13 +93,15 @@ python3 plugin/skills/figma-design-from-doc/scripts/check_doc.py \
 The worked example passing the linter cleanly is the regression test for the whole format
 chain: spec -> template -> example -> extractor -> linter.
 
-Three places must stay in sync when adding an archetype or a label:
+Five places must stay in sync when adding an archetype:
 
 1. `LABEL_ROLES` / `LAYOUTS` in `scripts/docx_extract.py`
-2. `references/doc-format.md` (the label and layout tables)
-3. `references/section-mapping.md` (how the archetype maps to a component)
+2. `ARCHETYPES`, `score()` and `PLACEHOLDER_ARCHETYPES` in `scripts/analyze_content.py`
+3. `references/inference.md` (the signals table)
+4. `references/section-mapping.md` (archetype -> component)
+5. `references/doc-format.md` + root `DOC-FORMAT.md` (the `Layout:` value list)
 
-Per-layout checks live in `check_doc.py` -> `check_section`.
+Per-layout format checks live in `check_doc.py` -> `check_section`.
 
 ## Config layering
 
@@ -85,7 +121,19 @@ asked — it changes what teammates receive.
 
 ## Testing
 
-Real documents to test the extractor against (all in `~/Downloads`, not in the repo):
+Run the whole chain against every sample before shipping a change to the analyser:
+
+```bash
+for f in ~/Downloads/*.docx; do
+  python3 plugin/skills/figma-design-from-doc/scripts/check_doc.py "$f" >/dev/null || \
+    echo "errors: $f"
+done
+```
+
+Expected: **zero errors on every real content document.** A writer doing nothing wrong must
+never see an error. Only `Vendor Onboarding Form.docx` errors, correctly -- 32 words total.
+
+Real documents to test against (all in `~/Downloads`, not in the repo):
 
 - `[Website] Solutions - Employee self-service.docx` — `section-markers` structure, the
   `SECTION n:` / `Heading:` / `<logo grid>` convention, 4 embedded images
@@ -93,6 +141,10 @@ Real documents to test the extractor against (all in `~/Downloads`, not in the r
   placeholders, one table
 - `AI workforce.docx` — `headings` structure, clean H1/H2 nesting
 - `Events Roundup Blogpost 2026.docx` — `headings`, H2-only
+- `Vendor Onboarding Form.docx` — `flat`: no headings, no markers. Exercises boundary
+  inference from paragraph shape, which is the path most writer documents take.
+- `AI workforce.docx` also exercises `implicitItemCount`: "Device Ops Engineer. Handles
+  hardware..." runs that must be read as cards, not prose.
 
 Write test output to the scratchpad, never into the repo. `.figma-design/` is gitignored —
 it is per-project run state, not source.
