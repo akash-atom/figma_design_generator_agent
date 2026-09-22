@@ -57,6 +57,25 @@ python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/docx_extract.p
 Read the printed outline — do **not** read the whole JSON into context. Pull specific
 sections out with `python3 -c` or `jq` as you need them.
 
+Then check the document against the page spec format:
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/check_doc.py" \
+  "<path/to/doc.docx>"
+```
+
+- **Errors** (exit 1) — report them to the user with the linter's suggested fixes and ask
+  whether to fix the document or proceed anyway. Don't silently build from a doc with
+  errors; a missing `Heading:` becomes a missing headline in the design.
+- **Warnings** — carry them into the Step 4 plan as the places you had to guess. A "no
+  `Layout:`" warning is exactly where your archetype choice needs the user's eye.
+- **Long-form note** — the doc uses Word headings rather than the labelled format. That's
+  expected for blog posts; proceed.
+
+The authoring format is `references/doc-format.md`. When a document doesn't follow it,
+point the user at that file (or at `templates/page-spec-template.docx` in the repo) rather
+than explaining the format from scratch.
+
 The script reports a `structure`, which tells you how to read the document:
 
 | `structure` | What it means | How to treat it |
@@ -137,9 +156,18 @@ Write `.figma-design/design-plan.md`, one row per page section:
 | 1 | S1 Delightful employee service… | hero | `Hero` (Variant=Centered) | eyebrow→`Tag#1:0`, heading→`Title#2:0`, body→`Body#3:0`, cta→nested `Button.Label#2:0` |
 
 Archetypes to choose from: `hero`, `logo-band`, `feature-grid`, `feature-split`,
-`stat-band`, `quote`, `accordion`, `table`, `cta-band`, `footer`. Pick from the section's
-`placeholders` and `roles` first, its content shape second (see
-`references/section-mapping.md`).
+`stat-band`, `quote`, `accordion`, `table`, `cta-band`, `footer`.
+
+Resolve each section's archetype in this order:
+
+1. **`section.layout`** — the author's own `Layout:` line, already normalised. When it is
+   set, use it. Don't second-guess it from the content.
+2. **`section.placeholders`** — `<logo grid>` names the component.
+3. **Content shape** — the fallback (see `references/section-mapping.md`).
+
+`section.layoutDeclared` with a null `section.layout` means the author wrote a `Layout:`
+value that isn't a known archetype; the linter already flagged it — say which section and
+fall through to rule 2.
 
 Then list, explicitly:
 
@@ -191,6 +219,7 @@ count, and anything you left as a placeholder or could not map.
 
 ## References
 
+- `references/doc-format.md` — the page spec format documents should follow
 - `references/content-model.md` — the `content.json` schema and its edge cases
 - `references/section-mapping.md` — archetype selection rules
 - `references/desktop-conventions.md` — frame sizing, spacing rhythm, naming
@@ -200,8 +229,10 @@ count, and anything you left as a placeholder or could not map.
 - **`.doc` / Pages / Google Docs `.gdoc`** — unsupported. Ask for a `.docx` re-save. The
   extractor already handles Google Docs `.docx` exports, including ones whose main part is
   `word/document2.xml`.
-- **Document has no headings and no `SECTION n:` markers** — don't invent structure
-  silently; propose a sectioning in Step 4 and let the user correct it.
+- **Document has no headings and no `SECTION n:` markers** — `check_doc.py` errors on
+  this. Don't invent structure silently: show the user `references/doc-format.md`, offer
+  `templates/page-spec-template.docx`, and if they want to proceed anyway, propose a
+  sectioning in Step 4 for them to correct.
 - **Library has no match for a placeholder** — build it manually from primitives bound to
   library variables, and say so in the final report. Do not substitute a component that
   merely looks close.

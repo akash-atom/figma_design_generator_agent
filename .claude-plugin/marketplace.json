@@ -1,7 +1,7 @@
 {
   "name": "figma-design-generator",
   "description": "Akash's design tooling for Claude Code: generate Figma designs from Word documents using your own component library.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "owner": {
     "name": "Akash Choudhary",
     "url": "https://github.com/akash-atom"
@@ -11,7 +11,7 @@
       "name": "figma-design-generator",
       "source": "./plugin",
       "description": "Turn a Word document into a desktop Figma design built from a pinned component library. Pins the library once, extracts .docx content, plans the section-to-component mapping for review, then builds and validates the frame in Figma.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "design",
       "keywords": [
         "figma",

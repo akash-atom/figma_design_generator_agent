@@ -53,28 +53,43 @@ Related:
 6. **Validate** — one screenshot pass for clipped text, wrong variants, leftover
    placeholders and the wrong font.
 
-## Document conventions it understands
+## The document format
 
-It reads both kinds of document:
+**Writing the docs? Read [DOC-FORMAT.md](DOC-FORMAT.md)** — that's the page you send
+colleagues. Start from [templates/page-spec-template.docx](templates/page-spec-template.docx),
+or see [templates/page-spec-example.docx](templates/page-spec-example.docx) filled in.
 
-**Page specs** that carry structure in plain text — the Atomicwork website-doc convention:
+In short: structure lives in plain text labels, so the doc stays readable as a document.
 
 ```
-Tag: Employee self-service
+Page: Employee self-service
+
 SECTION 1:
+Layout: hero
+Tag: Employee self-service
 Heading: Delightful employee service, delivered autonomously
 Description: Offer instant help round-the-clock…
-<logo grid>
 Button: Get a demo
+<logo grid>
 ```
 
-`SECTION n:` splits sections. `Label:` lines assign a role (`Tag`, `Heading`,
-`Description`, `Button`, `Quote`, `Stat`, …). `<angle brackets>` name the component or
-visual you want — these are matched against your library by name. `SEO title:` and
-`Meta description:` are recognised as metadata and kept out of the design.
+`SECTION n:` splits sections. `Layout:` names the archetype (`hero`, `feature-grid`,
+`quote`, `cta-band`, …) and is the strongest signal you can give. `Label:` lines assign a
+role (`Tag`, `Heading`, `Description`, `Button`, `Quote`, `Stat`, `Note`, …). `<angle
+brackets>` name a component, matched against your library. `SEO title:`/`Meta description:`
+are treated as metadata and kept out of the design.
 
-**Long-form docs** that use real Word heading styles — H1 becomes the hero, each H2 a
-section.
+Check a doc before generating from it:
+
+```bash
+python3 plugin/skills/figma-design-from-doc/scripts/check_doc.py "My page.docx"
+```
+
+It reports what's missing and how to fix it, and exits 1 on errors so it can gate a
+workflow. The skill runs it automatically.
+
+**Long-form docs** (blog posts, articles) need none of this — use real Word heading styles
+and structure is read from those. H1 becomes the hero, each H2 a section.
 
 Google Docs `.docx` exports work, including the ones whose internal document part is
 `word/document2.xml`. Legacy `.doc` does not — re-save as `.docx`.
@@ -89,6 +104,11 @@ Google Docs `.docx` exports work, including the ones whose internal document par
 ## Repository layout
 
 ```
+DOC-FORMAT.md                       the authoring guideline to send colleagues
+templates/
+├── page-spec-template.docx         blank, fill it in
+└── page-spec-example.docx          the same thing filled in
+tools/make_doc_template.py          regenerates both templates
 .claude-plugin/marketplace.json     this repo is its own marketplace
 plugin/
 ├── .claude-plugin/plugin.json
@@ -97,9 +117,14 @@ plugin/
 └── skills/
     ├── figma-design-from-doc/      the pipeline
     │   ├── SKILL.md
-    │   ├── references/             content schema, archetype mapping, layout conventions
+    │   ├── references/
+    │   │   ├── doc-format.md       canonical page spec format
+    │   │   ├── content-model.md    content.json schema
+    │   │   ├── section-mapping.md  archetype selection rules
+    │   │   └── desktop-conventions.md
     │   └── scripts/
     │       ├── docx_extract.py     .docx → structured JSON (stdlib only)
+    │       ├── check_doc.py        lints a doc against the format
     │       └── dgconfig.py         config layering + cache state
     └── figma-library-setup/        library picker
 ```
@@ -122,9 +147,21 @@ before releasing. Until then, each person is asked once per project.
 python3 plugin/skills/figma-design-from-doc/scripts/docx_extract.py \
   "/path/to/doc.docx" --out /tmp/out/content.json
 
+# Format check
+python3 plugin/skills/figma-design-from-doc/scripts/check_doc.py \
+  templates/page-spec-example.docx        # should print "Clean", exit 0
+
 # Config layering
 python3 plugin/skills/figma-design-from-doc/scripts/dgconfig.py paths
 python3 plugin/skills/figma-design-from-doc/scripts/dgconfig.py show
+```
+
+After editing the format spec, regenerate the templates so they don't drift:
+
+```bash
+python3 tools/make_doc_template.py
+python3 plugin/skills/figma-design-from-doc/scripts/check_doc.py \
+  templates/page-spec-example.docx
 ```
 
 Install the working copy without pushing:

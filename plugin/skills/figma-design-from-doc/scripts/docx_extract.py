@@ -330,6 +330,10 @@ LABEL_RE = re.compile(r"^([A-Za-z][A-Za-z0-9 /&'-]{1,28})\s*:\s*(.*)$")
 
 # Recognised labels -> the role the text plays in a section.
 LABEL_ROLES = {
+    # Page-level header block (once, above SECTION 1).
+    "page": "page", "page name": "page",
+    # Explicit archetype hint -- the strongest signal a section can carry.
+    "layout": "layout", "section type": "layout",
     "tag": "eyebrow", "eyebrow": "eyebrow", "label": "eyebrow",
     "kicker": "eyebrow", "pill": "eyebrow",
     "heading": "heading", "headline": "heading", "title": "heading",
@@ -341,14 +345,28 @@ LABEL_ROLES = {
     "paragraph": "body", "intro": "body",
     "button": "cta", "cta": "cta", "cta text": "cta",
     "button text": "cta", "primary cta": "cta", "secondary cta": "cta",
+    "button 1": "cta", "button 2": "cta", "secondary button": "cta",
+    "primary button": "cta",
+    "item": "item", "card": "card",
     "link": "link", "url": "link",
     "quote": "quote", "testimonial": "quote",
     "author": "attribution", "attribution": "attribution", "name": "attribution",
+    "role": "attribution-role", "job title": "attribution-role",
+    "company": "attribution-role",
     "stat": "stat", "metric": "metric", "number": "stat",
     "caption": "caption", "alt": "caption", "alt text": "caption",
     "note": "note", "notes": "note", "instruction": "note",
-    "seo title": "meta", "meta description": "meta", "slug": "meta", "url slug": "meta",
+    "seo title": "meta", "meta description": "meta", "slug": "meta",
+    "url slug": "meta", "template": "meta", "url": "meta", "owner": "meta",
+    "status": "meta", "reviewer": "meta",
 }
+
+# Archetype keywords accepted on a "Layout:" line. Keep in sync with
+# references/section-mapping.md and references/doc-format.md.
+LAYOUTS = (
+    "hero", "logo-band", "feature-grid", "feature-split", "stat-band",
+    "quote", "accordion", "table", "cta-band", "footer",
+)
 
 
 def classify_paragraph(text):
@@ -491,17 +509,35 @@ def _new_section(heading, level, index=None, kind="heading"):
             "blocks": [], "subsections": []}
 
 
+def normalise_layout(value):
+    """Map a Layout: value onto a known archetype, tolerating spacing and
+    plurals ('Feature Grid', 'feature grids' -> 'feature-grid')."""
+    slug = re.sub(r"[^a-z0-9]+", "-", (value or "").strip().lower()).strip("-")
+    slug = re.sub(r"s$", "", slug)
+    for known in LAYOUTS:
+        if slug == known or slug == known.replace("-", ""):
+            return known
+    return None
+
+
 def _summarise(section):
     """Roll the labelled/placeholder signals up so the plan step can read a
     section's intent without walking every block."""
     roles, placeholders = {}, []
     for b in section["blocks"]:
         if b.get("role"):
-            roles.setdefault(b["role"], []).append(b.get("value") or b["text"])
+            # Keep an empty value empty -- falling back to the raw text would
+            # turn a blank "Heading:" into the literal string "Heading:" and
+            # hide an unfilled label from the format checker.
+            value = b["value"] if "value" in b else b["text"]
+            roles.setdefault(b["role"], []).append(value)
         if b["type"] == "placeholder":
             placeholders.append(b["placeholder"])
     section["roles"] = roles
     section["placeholders"] = placeholders
+    declared = roles.get("layout", [None])[0]
+    section["layout"] = normalise_layout(declared)
+    section["layoutDeclared"] = declared
     for sub in section["subsections"]:
         _summarise(sub)
     return section
@@ -562,6 +598,10 @@ def outline(sections, depth=0, lines=None):
         for b in s["blocks"]:
             counts[b["type"]] = counts.get(b["type"], 0) + 1
         bits = []
+        if s.get("layout"):
+            bits.append("layout: " + s["layout"])
+        elif s.get("layoutDeclared"):
+            bits.append("layout: %s (UNKNOWN)" % s["layoutDeclared"])
         if s.get("roles"):
             bits.append("roles: " + "/".join(sorted(s["roles"])))
         if s.get("placeholders"):
