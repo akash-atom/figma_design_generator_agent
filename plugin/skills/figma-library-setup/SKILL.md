@@ -8,13 +8,16 @@ description: "Pin, inspect or change the Figma component library that figma-desi
 One-time setup per project. Writes the chosen library into
 `./.figma-design/config.json` so `figma-design-from-doc` never has to ask again.
 
-Scripts are at `$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/`.
+Scripts are at `$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/`. Resolve the
+interpreter first with `PY=$(command -v python3 || command -v python)`; if neither is
+found, see the prerequisites in `figma-design-from-doc`'s SKILL.md — on macOS the fix is
+`xcode-select --install`.
 
 ## Step 1 — Show what is currently pinned
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/dgconfig.py" show
-python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/dgconfig.py" paths
+"$PY" "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/dgconfig.py" show
+"$PY" "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/dgconfig.py" paths
 ```
 
 If a library is already pinned and the user only asked *which* one, report it with its
@@ -57,7 +60,7 @@ pick it and just confirm the choice in one line.
 ## Step 5 — Save
 
 ```bash
-python3 .../dgconfig.py set \
+"$PY" .../dgconfig.py set \
   --library-key "<libraryKey>" \
   --library-name "<name>" \
   --library-file-key "<library's own fileKey, if known>" \
@@ -92,7 +95,7 @@ into a separate file. When the library is published later, re-run this skill wit
 `--mode published` and a real target file; the component map rediscovers with keys.
 
 ```bash
-python3 .../dgconfig.py set --mode local --file-key "<library file key>"
+"$PY" .../dgconfig.py set --mode local --file-key "<library file key>"
 ```
 
 Confirm with `dgconfig.py show`, which prints the resolved mode and what it implies.

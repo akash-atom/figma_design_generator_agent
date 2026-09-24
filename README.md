@@ -105,8 +105,12 @@ Google Docs `.docx` exports work, including the ones whose internal document par
 - A Figma account with access to the component library. **A published library and a Figma
   team are not required** — with an unpublished library the design is built on a page
   inside the library file itself, where local components instance directly
-- `python3` — stock macOS/Linux Python is fine. **No pip installs, no pandoc.** The `.docx`
-  extractor is standard library only, so it works on a teammate's machine with no setup.
+- `python3` — a stock interpreter, nothing more. **No pip installs, no virtualenv, no
+  pandoc.** Every script is standard library only.
+  On macOS `python3` ships at `/usr/bin/python3` but needs Apple's Command Line Tools: if
+  it isn't there, `xcode-select --install` takes a couple of minutes and is not Xcode. On
+  Windows, install from python.org and use `python`. The skill checks for an interpreter
+  up front and prints the fix rather than failing mid-run.
 
 ## Repository layout
 

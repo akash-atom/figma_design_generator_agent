@@ -20,8 +20,25 @@ worked out:
 > never silently rewrite, shorten, retitle or invent copy to make it fit a component.
 
 **Scripts live at `$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/`.** If that
-variable is unset, resolve the path relative to this file. Both scripts are stdlib-only
+variable is unset, resolve the path relative to this file. All scripts are stdlib-only
 Python 3 — never `pip install` anything.
+
+**Resolve the interpreter once, before Step 0**, and reuse it for every script call:
+
+```bash
+PY=$(command -v python3 || command -v python) && "$PY" -V
+```
+
+If neither exists, stop and give the fix for their platform rather than a stack trace:
+
+- **macOS** — `python3` lives at `/usr/bin/python3` but needs Apple's Command Line Tools.
+  Tell them to run `xcode-select --install`, accept the dialog, and re-run. It is a
+  few-minute download, it is free, and it is not Xcode.
+- **Windows** — install from python.org or `winget install Python.Python.3.12`, and use
+  `python` rather than `python3`.
+- **Linux** — `python3` is nearly always present; otherwise their package manager.
+
+Nothing beyond a stock interpreter is needed: no pip, no virtualenv, no pandoc.
 
 Work in `./.figma-design/` in the user's current project: `config.json`, `content.json`,
 `library-map.json`, `design-plan.md`, `assets/`.
@@ -31,7 +48,7 @@ Work in `./.figma-design/` in the user's current project: `config.json`, `conten
 ## Step 0 — Resolve the component library
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/dgconfig.py" show
+"$PY" "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/dgconfig.py" show
 ```
 
 If `library.libraryKey` is null, **invoke the `figma-library-setup` skill and stop until it
@@ -60,13 +77,13 @@ ask the user (AskUserQuestion) between:
 Only `/design/` URLs work. Save the result:
 
 ```bash
-python3 .../dgconfig.py set --file-key <FILEKEY> --doc <path/to/doc.docx>
+"$PY" .../dgconfig.py set --file-key <FILEKEY> --doc <path/to/doc.docx>
 ```
 
 ## Step 2 — Extract the document
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/docx_extract.py" \
+"$PY" "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/docx_extract.py" \
   "<path/to/doc.docx>" --out .figma-design/content.json
 ```
 
@@ -76,7 +93,7 @@ sections out with `python3 -c` or `jq` as you need them.
 Then check that there is enough content to design from:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/check_doc.py" \
+"$PY" "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/check_doc.py" \
   "<path/to/doc.docx>"
 ```
 
@@ -123,7 +140,7 @@ exclude them from the design.
 ## Step 3 — Work out the design
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/analyze_content.py" \
+"$PY" "$CLAUDE_PLUGIN_ROOT/skills/figma-design-from-doc/scripts/analyze_content.py" \
   .figma-design/content.json --out .figma-design/analysis.json
 ```
 
@@ -153,7 +170,7 @@ Step 4 — that keeps the search scoped to what the page actually needs.
 ## Step 4 — Build or reuse the library map
 
 ```bash
-python3 .../dgconfig.py cache-status
+"$PY" .../dgconfig.py cache-status
 ```
 
 On `HIT`, read `.figma-design/library-map.json` and skip to Step 5. On `MISS`/`STALE`,
