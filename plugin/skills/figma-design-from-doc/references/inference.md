@@ -20,6 +20,10 @@ you have three honest options, in order of preference:
 2. Lay the copy out manually at the length it is.
 3. Propose a specific edit — show the before and after — and wait for a yes.
 
+The same applies in reverse when there is **too little** copy: build fewer instances
+rather than repeating content. A card duplicating another card's real title and body is
+indistinguishable from finished work, which makes it worse than an obviously empty slot.
+
 Inventing a button label, trimming a headline to fit one line, or summarising a paragraph
 into a card is the one failure that makes this tool untrustworthy. A design that is slightly
 less tidy but says exactly what the writer wrote is always the better outcome.

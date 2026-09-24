@@ -279,6 +279,9 @@ Then list, explicitly:
 - Any copy that **cannot fit** the component you chose, with the specific edit you would
   make — before and after. **Wait for a yes on these.** Never trim a headline, summarise a
   paragraph or invent a button label to make the layout work.
+- Any section with **fewer items than the component expects**, stating the count you will
+  build ("3 items → 3 cards") rather than asking an open question. Never propose
+  duplicating real copy as the default way to fill a grid.
 - Anything the analyser flagged at `low` confidence, and what you decided instead.
 - Every image: `use_figma` **cannot fetch external image URLs**. For each extracted image in
   `.figma-design/assets/`, say whether you will `upload_assets` it or leave a labelled
@@ -359,25 +362,49 @@ return { count: applied.length, applied };
 
 Three rules:
 
-1. `items.length` instances, never a hardcoded count. If the section has five items,
-   five instances — not six because the grid looks better.
+1. **`items.length` instances, never a hardcoded count.** The content decides how many
+   cards there are, not the grid. Three items is a three-card row, not five cards with
+   two repeats.
 2. Each instance gets **its own** item. A `for` loop over an index that reads
    `items[0]` inside, or `instance.clone()` after `setProperties()`, gives every card the
    same copy.
 3. **Return the applied title of each instance** from the `use_figma` call, as above.
    That list is your proof the content differs; without it you are trusting a loop you
    cannot see.
+
+### When there is less content than the layout wants
+
+Common: the writer listed three coworkers but the grid component is a 6-up. **Do not
+duplicate real copy to fill the gap.** A card repeating another card's real title and
+body looks finished and is wrong — it is the one filler that a reader cannot tell from
+intentional content.
+
+Resolve in this order, and just do the first one:
+
+1. **Build only what there is content for.** Three items, three cards. Pick the variant
+   whose column count matches, or let the grid wrap short.
+2. **Use a smaller variant** if the component exposes one (3-up instead of 6-up).
+3. **Leave the component's own placeholder text in place** on the extra instances —
+   "Title", "Body copy". Visibly unfilled is honest; it tells the reader exactly what is
+   missing.
+4. Only if the user explicitly asks for repeated real content, do it, and record in the
+   final report that those cards are duplicates awaiting copy.
+
+When you raise this with the user in the Step 5 plan, recommend option 1 rather than
+presenting an open question — "Section 4 has 3 items for a 6-up grid; I'll build 3 cards"
+is a decision they can overrule, which is the point.
 - Set `layoutSizingHorizontal = "FILL"` **after** appending, not before.
 
 ## Step 7 — Validate
 
 One `get_screenshot` of the wrapper frame. Check for:
 
-- **repeated content across sibling instances** — the same title or body text in every
-  card of a grid. This is the most common build defect and it is easy to miss, because a
-  grid of identical well-styled cards looks fine until you read it. Compare the `applied`
-  list returned by the build call against the source items, and read the actual words in
-  the screenshot rather than scanning the shapes
+- **repeated content across sibling instances** — the same title or body in every card of
+  a grid. Easy to miss: identical well-styled cards look fine until you read them. Compare
+  the `applied` list from the build call against the source items, and read the words in
+  the screenshot rather than scanning the shapes. If the repetition was the user's
+  explicit choice, that is not a defect — but say so in the report, and check the repeated
+  text is the component's visible placeholder rather than real copy duplicated
 - leftover placeholder strings ("Title", "Heading", "Button", "Lorem")
 - clipped or overlapping text
 - wrong component variants
