@@ -53,6 +53,40 @@ whenever a token exists.
   ad-hoc padding.
 - Hero may take more vertical padding than the rest (1.5× is a reasonable ceiling).
 
+## Consistency across sections
+
+These are page-level and easy to miss when sections are built one call at a time. Decide
+each once, up front, and apply it to every section.
+
+**Header alignment.** If the library's section header exposes a left/centre property,
+pick one for the page and keep it. Left-aligned headers with one centred section in the
+middle reads as a mistake, not as emphasis. Centre the hero if the library's hero does;
+left-align the rest.
+
+**Background rhythm.** Alternate surfaces deliberately rather than per section as you
+build. Four consecutive light sections at the top of a page is the common outcome of
+deciding one at a time — decide the whole sequence before the first build call, and write
+it into the plan.
+
+**Section padding.** Take the padding from the library's own section components where
+they set it. Only fall back to `config.desktop` values for sections you build by hand,
+and use the same value throughout so bands don't drift.
+
+## Placeholders should be the size of the real thing
+
+When a component is missing or an image can't be placed, the placeholder frame stands in
+for real content — so size it like the content it replaces, not like the space left over.
+A 560px dashed box for a missing grid leaves a hole that dominates the page and distorts
+every judgement about rhythm around it.
+
+Estimate from what the content implies: a grid of six cards is roughly two rows of ~280px,
+a product screenshot is roughly 16:9 at the content width. Label it with what is missing
+and why, as the build already does.
+
+The same applies to a section whose copy arrived thin. A hero with a headline, one line of
+body and a button does not need 520px of band — let it hug, with the library's own
+vertical padding. Empty space that was not designed reads as a bug.
+
 ## Typography and colour
 
 - Text styles come from the library (`node.textStyleId`), never from manual font size and
