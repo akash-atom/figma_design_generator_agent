@@ -102,7 +102,9 @@ Google Docs `.docx` exports work, including the ones whose internal document par
 ## Requirements
 
 - Claude Code with the Figma MCP server (shipped with this plugin)
-- A Figma account with access to the component library, on a plan that allows file creation
+- A Figma account with access to the component library. **A published library and a Figma
+  team are not required** — with an unpublished library the design is built on a page
+  inside the library file itself, where local components instance directly
 - `python3` — stock macOS/Linux Python is fine. **No pip installs, no pandoc.** The `.docx`
   extractor is standard library only, so it works on a teammate's machine with no setup.
 

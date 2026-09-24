@@ -90,7 +90,17 @@ def cmd_show(args):
     print("\n# provenance")
     for key in sorted(prov):
         print("%-28s %s" % (key, prov[key]))
-    if not lib.get("libraryKey"):
+    mode = lib.get("mode") or ("local" if lib.get("libraryFileKey")
+                               and lib.get("libraryFileKey")
+                               == cfg.get("targetFileKey") else "published")
+    print("\n# resolved mode: %s" % mode)
+    if mode == "local":
+        print("  Components are referenced by node id inside one file. "
+              "No publishing required.")
+    else:
+        print("  Components are imported across files by key. The library "
+              "must be published.")
+    if not lib.get("libraryKey") and not lib.get("libraryFileKey"):
         print("\n! No component library pinned. Run /figma-library-setup.")
     return 0
 
@@ -113,7 +123,8 @@ def cmd_set(args):
     lib = data.setdefault("library", {})
     for attr, key in (("library_key", "libraryKey"),
                       ("library_name", "libraryName"),
-                      ("library_file_key", "libraryFileKey")):
+                      ("library_file_key", "libraryFileKey"),
+                      ("mode", "mode")):
         value = getattr(args, attr)
         if value is not None:
             lib[key] = value
@@ -138,7 +149,8 @@ def cmd_cache_status(args):
         print("MISS: no %s -- run library discovery." % path)
         return 1
     data = load(path)
-    have = data.get("libraryKey")
+    have = data.get("libraryKey") or data.get("libraryFileKey")
+    want = want or (cfg.get("library") or {}).get("libraryFileKey")
     if want and have and want != have:
         print("STALE: cached map is for library %s but config pins %s -- "
               "rediscover." % (have, want))
@@ -162,6 +174,11 @@ def main():
     st.add_argument("--library-key")
     st.add_argument("--library-name")
     st.add_argument("--library-file-key")
+    st.add_argument("--mode", choices=["local", "published"],
+                    help="local: components live in the same file we build "
+                         "into, referenced by node id (works with an "
+                         "unpublished library). published: imported across "
+                         "files by key.")
     st.add_argument("--file-key", help="target Figma file key to build into")
     st.add_argument("--doc", help="path of the source .docx, for reference")
     st.add_argument("--scope", choices=["project", "user"], default="project")

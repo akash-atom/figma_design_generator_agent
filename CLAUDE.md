@@ -103,6 +103,24 @@ Five places must stay in sync when adding an archetype:
 
 Per-layout format checks live in `check_doc.py` -> `check_section`.
 
+## Local vs published mode
+
+`importComponentByKeyAsync` only works for **published** libraries, which needs a Figma
+team. That is not a prerequisite for this tool.
+
+- **local** — the design is built on a new page *inside the library file*. Components
+  resolve with `getNodeByIdAsync`, variables with `getVariableByIdAsync`, styles with
+  `getStyleByIdAsync`. Nothing is imported, so nothing needs publishing, and the output is
+  still real component instances.
+- **published** — cross-file, resolved by key.
+
+`dgconfig.py show` prints the resolved mode; it defaults to `local` when `targetFileKey`
+equals `libraryFileKey`. `library-map.json` stores **both** `id` and `key` per component
+so a map survives the switch.
+
+Never treat an unpublished library as a reason to hand-build frames — that is the
+regression this mode exists to prevent.
+
 ## Config layering
 
 Highest priority first:

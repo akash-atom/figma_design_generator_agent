@@ -74,8 +74,28 @@ exact and complete. Without it, discovery falls back to name-matching against
 `search_design_system`. Ask the user for the library file's URL if you don't already have
 it.
 
-Before finishing, confirm the library is **published**. Component keys do not resolve for
-import until it is, and the failure surfaces much later as a confusing import error.
+## Step 6 — Pick the mode
+
+Ask whether the library is **published**. This decides how components are referenced, and
+an unpublished library is not a blocker:
+
+- **Published** → `--mode published`. Components are imported by key into any file. This
+  is what you want once the library is shared with the team.
+- **Not published** (no team yet, personal draft, work in progress) → `--mode local`, and
+  set `targetFileKey` to the library's own file key. Designs are built on a new page
+  **inside the library file**, where local components instance directly by node id.
+  Variables and text styles resolve locally too. Nothing needs publishing, and the result
+  is real component instances, not hand-built frames.
+
+Local mode is a complete path, not a degraded one. The only thing it gives up is building
+into a separate file. When the library is published later, re-run this skill with
+`--mode published` and a real target file; the component map rediscovers with keys.
+
+```bash
+python3 .../dgconfig.py set --mode local --file-key "<library file key>"
+```
+
+Confirm with `dgconfig.py show`, which prints the resolved mode and what it implies.
 
 Changing the library invalidates any cached component map. Tell the user that the next
 design run will rediscover components — `dgconfig.py cache-status` reports `STALE` and

@@ -42,6 +42,11 @@ Never guess a library key.
 
 ## Step 1 — Resolve the target Figma file
 
+**If the library is unpublished, build into the library file itself** — set
+`targetFileKey` to `libraryFileKey` and add a page to it. Local components instance
+directly, so nothing needs publishing. `dgconfig.py show` reports this as
+`resolved mode: local`.
+
 If `targetFileKey` is already in the config, confirm it in one line and move on. Otherwise
 ask the user (AskUserQuestion) between:
 
@@ -160,7 +165,7 @@ glob. Log it as N/A and skip — don't spend calls searching.
 
 **2. If `library.libraryFileKey` is set, read the library file directly.** This is the
 best path by a wide margin: it is exact, complete, and needs no example screen. Run
-`use_figma` against the *library* file, not the target file:
+`use_figma` against the *library* file:
 
 ```js
 // Components usually live on one page. Switch to it if it isn't current --
@@ -178,7 +183,8 @@ for (const n of figma.currentPage.findAllWithCriteria({
   if (sets.has(set.id)) continue;
   sets.set(set.id, {
     name: set.name,
-    key: set.key,
+    id: set.id,        // use this in local mode
+    key: set.key,      // use this in published mode
     type: set.type,
     properties: set.componentPropertyDefinitions,
     variants: set.type === "COMPONENT_SET"
@@ -210,19 +216,24 @@ not a reason to retry with variants.
 (text, effect) results. In the library file, `figma.variables.getLocalVariableCollectionsAsync()`
 lists local variables directly.
 
-**If a component key fails to import**, the library is almost certainly unpublished — keys
-don't resolve for `importComponentByKeyAsync` until publication. Say that plainly rather
-than falling back to hand-built frames.
+**Record both `id` and `key` for every component**, plus the resolved `mode`, in
+`library-map.json`. Which one you use in Step 6 depends on the mode.
+
+**If a component key fails to import in published mode**, the library is unpublished. Do
+not fall back to hand-built frames — switch to local mode instead (build into the library
+file), which needs no publishing and produces real instances. Say so plainly.
 
 Write the result to `.figma-design/library-map.json`:
 
 ```json
 {
   "libraryKey": "lk-...",
+  "libraryFileKey": "...",
   "libraryName": "...",
-  "discoveredAt": "2026-09-22",
+  "mode": "local",
+  "discoveredAt": "2026-09-24",
   "components": {
-    "Button": { "key": "abc123", "type": "COMPONENT_SET",
+    "Button": { "id": "12:34", "key": "abc123", "type": "COMPONENT_SET",
                 "properties": { "Label#2:0": "TEXT", "Variant": "VARIANT" },
                 "variants": ["Variant=Primary", "Variant=Secondary"] }
   },
@@ -288,6 +299,24 @@ Load both Figma skills via `ReadMcpResourceTool` on `figma-remote-mcp`:
 Pass `skillNames: "resource:figma-use,resource:figma-generate-design"` on every `use_figma`
 call. Then follow their Steps 3–4, with this project's desktop conventions from
 `references/desktop-conventions.md` and `config.desktop`:
+
+**Resolving components, variables and styles depends on the mode:**
+
+| | local (same file, unpublished OK) | published (cross-file) |
+|---|---|---|
+| Component | `figma.getNodeByIdAsync(id)` | `figma.importComponentSetByKeyAsync(key)` |
+| Variable | `figma.variables.getVariableByIdAsync(id)` | `figma.variables.importVariableByKeyAsync(key)` |
+| Style | `figma.getStyleByIdAsync(id)` | `figma.importStyleByKeyAsync(key)` |
+
+Both then behave identically — `set.children.find(...)` for the variant, `createInstance()`,
+`setProperties()`, `setBoundVariable`. In local mode nothing is imported, so **publishing
+is never required**; list the local collections with
+`figma.variables.getLocalVariableCollectionsAsync()` and
+`figma.getLocalTextStylesAsync()`.
+
+In local mode, add the page rather than assuming one:
+`const page = figma.createPage(); page.name = "<Document title>"; await figma.setCurrentPageAsync(page);`
+Keep the build off the components page so the library stays tidy.
 
 - Wrapper frame in **its own** `use_figma` call, vertical auto-layout, `frameWidth` (1440)
   wide, named after the document title. Return its ID.
