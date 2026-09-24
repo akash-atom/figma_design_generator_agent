@@ -394,6 +394,11 @@ When you raise this with the user in the Step 5 plan, recommend option 1 rather 
 presenting an open question — "Section 4 has 3 items for a 6-up grid; I'll build 3 cards"
 is a decision they can overrule, which is the point.
 - Set `layoutSizingHorizontal = "FILL"` **after** appending, not before.
+- **Decide the page-wide choices before the first build call** — header alignment and the
+  background surface sequence — and write them into the plan. Sections are built in
+  separate calls, so deciding per section is how a page ends up with one stray centred
+  header and four identical light bands in a row. See
+  `references/desktop-conventions.md` → Consistency across sections.
 
 ## Step 7 — Validate
 
@@ -409,6 +414,11 @@ One `get_screenshot` of the wrapper frame. Check for:
 - clipped or overlapping text
 - wrong component variants
 - blank image frames
+- **inconsistent header alignment** across sections, and a background sequence that runs
+  four light bands together — both are invisible section by section and obvious only in
+  the full-page screenshot
+- **oversized placeholders** — a dashed box much taller than the content it stands in
+  for, or a section holding far more empty band than its copy needs
 - **the font family** — assert it explicitly against the library's own text styles; a script
   can load the wrong font without erroring
 
