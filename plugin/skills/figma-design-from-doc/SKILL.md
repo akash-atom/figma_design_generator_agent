@@ -314,9 +314,19 @@ is never required**; list the local collections with
 `figma.variables.getLocalVariableCollectionsAsync()` and
 `figma.getLocalTextStylesAsync()`.
 
-In local mode, add the page rather than assuming one:
-`const page = figma.createPage(); page.name = "<Document title>"; await figma.setCurrentPageAsync(page);`
-Keep the build off the components page so the library stays tidy.
+In local mode, **create a page for the build before anything else** — do not build onto
+the components page, which leaves generated frames mixed in with the library:
+
+```js
+const page = figma.createPage();
+page.name = "<Document title>";
+await figma.setCurrentPageAsync(page);
+return { pageId: page.id, pageName: page.name };
+```
+
+Setting `figma.currentPage` directly is not supported; use `setCurrentPageAsync`. Pass the
+returned `pageId` into later calls and re-select that page at the top of each one, since
+page context does not persist between `use_figma` calls.
 
 - Wrapper frame in **its own** `use_figma` call, vertical auto-layout, `frameWidth` (1440)
   wide, named after the document title. Return its ID.
@@ -326,12 +336,48 @@ Keep the build off the components page so the library stays tidy.
   Never hardcode a hex or a pixel value where the library has a token.
 - Override instance text with `setProperties()` using the keys from `library-map.json`, not
   by assigning `node.characters`.
+
+**Repeated items — one instance per content item, always.** This is the easiest thing in
+the whole pipeline to get wrong, and it produces a grid of identical cards that looks
+plausible at a glance:
+
+```js
+// Build the content array FIRST, then map over it. Never configure one
+// instance and clone it, and never call createInstance() in a bare count loop.
+const items = [
+  { title: "Device Ops Engineer", body: "Handles hardware support..." },
+  { title: "Access Manager",      body: "Provisions application access..." },
+];
+const applied = items.map(item => {
+  const inst = variant.createInstance();
+  inst.setProperties({ "Title#1:0": item.title, "Body#2:0": item.body });
+  grid.appendChild(inst);
+  return { id: inst.id, title: item.title };
+});
+return { count: applied.length, applied };
+```
+
+Three rules:
+
+1. `items.length` instances, never a hardcoded count. If the section has five items,
+   five instances — not six because the grid looks better.
+2. Each instance gets **its own** item. A `for` loop over an index that reads
+   `items[0]` inside, or `instance.clone()` after `setProperties()`, gives every card the
+   same copy.
+3. **Return the applied title of each instance** from the `use_figma` call, as above.
+   That list is your proof the content differs; without it you are trusting a loop you
+   cannot see.
 - Set `layoutSizingHorizontal = "FILL"` **after** appending, not before.
 
 ## Step 7 — Validate
 
 One `get_screenshot` of the wrapper frame. Check for:
 
+- **repeated content across sibling instances** — the same title or body text in every
+  card of a grid. This is the most common build defect and it is easy to miss, because a
+  grid of identical well-styled cards looks fine until you read it. Compare the `applied`
+  list returned by the build call against the source items, and read the actual words in
+  the screenshot rather than scanning the shapes
 - leftover placeholder strings ("Title", "Heading", "Button", "Lorem")
 - clipped or overlapping text
 - wrong component variants

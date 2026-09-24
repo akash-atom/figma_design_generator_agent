@@ -1,6 +1,6 @@
 {
   "name": "figma-design-generator",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Generates desktop Figma designs from Word documents using components from a pinned Figma component library. Wraps the Figma MCP server's own design skills with library pinning, .docx content extraction, and a reviewable section plan.",
   "author": {
     "name": "Akash Choudhary"

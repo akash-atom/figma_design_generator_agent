@@ -75,6 +75,12 @@ in `library-map.json`:
 When a section has no `roles` at all (plain prose, no labels), infer: first line →
 heading, following paragraph → body, a trailing short imperative sentence → CTA.
 
+**For repeated items, build the full content array before touching Figma.** Split each
+list item (or each parallel paragraph) on its first `.`, `—` or `:` into title and body,
+and lay the array out in the plan so the user can see all of it. Then create exactly one
+instance per entry. The failure to watch for is a grid where every card carries the first
+item's copy — it renders cleanly and reads as finished until you actually read it.
+
 **Never render** `role: "note"` (author instructions) or `role: "meta"` (SEO fields) as
 visible copy. Notes are layout direction — "On the left: ServiceNow and JSM logos" means
 choose the left-aligned variant and put those logos there.
