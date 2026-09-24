@@ -151,26 +151,68 @@ Step 4 — that keeps the search scoped to what the page actually needs.
 python3 .../dgconfig.py cache-status
 ```
 
-On `HIT`, read `.figma-design/library-map.json` and skip to Step 4. On `MISS`/`STALE`,
-discover it now, following `figma-generate-design` Step 2 with these adaptations:
+On `HIT`, read `.figma-design/library-map.json` and skip to Step 5. On `MISS`/`STALE`,
+discover it now. This follows `figma-generate-design` Step 2, but the ordering differs
+because the source is a document, not a codebase:
 
-1. **Code Connect discovery (its step 2a-i) is N/A.** The source is a document, not a
-   codebase — there are no `*.figma.ts` files to glob. Log it as N/A and skip. Do not spend
-   calls searching.
-2. **Inspect existing screens first (2a-ii).** One `use_figma` call walking
-   `findAllWithCriteria({ types: ["INSTANCE"] })` over an existing frame gives exact
-   component keys. Do this whenever the target file has screens.
-3. **`search_design_system` last (2a-iii)**, always scoped:
-   `includeLibraryKeys: [<libraryKey from config>]`. One intent per `queries` entry, all in
-   a single batched call. **Derive the query terms from the document** — the placeholders
-   and section archetypes you found in Step 2 — not from a generic checklist. This tool
-   rejects speculative synonym sweeps, and an empty result is not a reason to retry with
-   variants.
-4. Also collect `entity: "variable"` (color, spacing, radius) and `entity: "style"`
-   (text, effect) results.
-5. For each component you will actually use, instance it once in a scratch frame, read
-   `componentProperties` (plus nested instances' properties), record the TEXT and VARIANT
-   keys, then delete the scratch frame.
+**1. Code Connect discovery (its step 2a-i) is N/A.** There are no `*.figma.ts` files to
+glob. Log it as N/A and skip — don't spend calls searching.
+
+**2. If `library.libraryFileKey` is set, read the library file directly.** This is the
+best path by a wide margin: it is exact, complete, and needs no example screen. Run
+`use_figma` against the *library* file, not the target file:
+
+```js
+// Components usually live on one page. Switch to it if it isn't current --
+// loadAllPagesAsync is not available, so enumerate one page at a time.
+const page = figma.root.children.find(p => /component|library|main/i.test(p.name))
+  || figma.currentPage;
+if (page.id !== figma.currentPage.id) await figma.setCurrentPageAsync(page);
+
+const sets = new Map();
+for (const n of figma.currentPage.findAllWithCriteria({
+  types: ["COMPONENT_SET", "COMPONENT"] })) {
+  // A variant's own componentPropertyDefinitions throws -- always read the set.
+  const set = (n.type === "COMPONENT" && n.parent?.type === "COMPONENT_SET")
+    ? n.parent : n;
+  if (sets.has(set.id)) continue;
+  sets.set(set.id, {
+    name: set.name,
+    key: set.key,
+    type: set.type,
+    properties: set.componentPropertyDefinitions,
+    variants: set.type === "COMPONENT_SET"
+      ? set.children.map(c => c.name) : null,
+  });
+}
+return { page: figma.currentPage.name, count: sets.size,
+         components: [...sets.values()] };
+```
+
+`componentPropertyDefinitions` gives the TEXT, VARIANT, BOOLEAN and INSTANCE_SWAP keys
+directly — **no scratch instances needed.** If the response is too large, return
+`{name, key}` only, then re-read `componentPropertyDefinitions` for the subset the page
+actually needs. If the components turn out to span several pages, repeat per page.
+
+**3. Otherwise, inspect existing screens in the target file (2a-ii).** When you only have
+a consumer file, walk its instances:
+`findAllWithCriteria({ types: ["INSTANCE"] })`, then `inst.mainComponent` and up to its
+`COMPONENT_SET` parent. Main components are not `INSTANCE` nodes, so this path only sees
+what has actually been placed.
+
+**4. `search_design_system` last (2a-iii)**, always scoped:
+`includeLibraryKeys: [<libraryKey from config>]`. One intent per `queries` entry, all in a
+single batched call. **Derive the query terms from the archetypes in Step 3** — not from a
+generic checklist. This tool rejects speculative synonym sweeps, and an empty result is
+not a reason to retry with variants.
+
+**5. Also collect** `entity: "variable"` (color, spacing, radius) and `entity: "style"`
+(text, effect) results. In the library file, `figma.variables.getLocalVariableCollectionsAsync()`
+lists local variables directly.
+
+**If a component key fails to import**, the library is almost certainly unpublished — keys
+don't resolve for `importComponentByKeyAsync` until publication. Say that plainly rather
+than falling back to hand-built frames.
 
 Write the result to `.figma-design/library-map.json`:
 

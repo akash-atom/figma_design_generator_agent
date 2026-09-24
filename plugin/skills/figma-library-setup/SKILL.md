@@ -67,6 +67,16 @@ python3 .../dgconfig.py set \
 Use `--scope user` instead when the user wants this library as their personal default
 across all projects.
 
+**Always capture `--library-file-key`** — the file key of the library file itself, from
+its own `figma.com/design/<fileKey>/...` URL. It is not optional in practice: with it,
+`figma-design-from-doc` reads the components straight out of the library file, which is
+exact and complete. Without it, discovery falls back to name-matching against
+`search_design_system`. Ask the user for the library file's URL if you don't already have
+it.
+
+Before finishing, confirm the library is **published**. Component keys do not resolve for
+import until it is, and the failure surfaces much later as a confusing import error.
+
 Changing the library invalidates any cached component map. Tell the user that the next
 design run will rediscover components — `dgconfig.py cache-status` reports `STALE` and
 `figma-design-from-doc` handles it automatically.
