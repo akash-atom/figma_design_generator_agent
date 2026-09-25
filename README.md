@@ -146,9 +146,22 @@ plugin/
 
 1. Make the change.
 2. Bump `version` in **both** `.claude-plugin/marketplace.json` and
-   `plugin/.claude-plugin/plugin.json`.
+   `plugin/.claude-plugin/plugin.json` — they must agree or tagging refuses.
 3. Commit and push to `main`.
-4. Teammates run `/plugin update figma-design-generator`.
+4. `claude plugin tag ./plugin --push -m "%s"` to tag the release.
+5. Teammates run `/plugin update figma-design-generator`.
+
+**Which number to bump** — semver, read as *"can the same document now produce a different
+design?"*
+
+| | When |
+|---|---|
+| **major** | An installed project needs migration: config or library-map schema breaks, or a skill is renamed or removed |
+| **minor** | The same input can produce a different design, or a new capability lands. Most changes, **including edits to the reference docs** — those files are the decision logic |
+| **patch** | Nothing about the built design changes: wording, packaging, error text, a fix to a script that was outright failing |
+
+`1.0.0` when the Figma build path is validated by people other than the author and the
+config schemas have settled. Until then `0.x` minors may break things.
 
 To set the team-wide default library, fill in `library` in `plugin/config/defaults.json`
 before releasing. Until then, each person is asked once per project.

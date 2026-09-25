@@ -131,11 +131,41 @@ Highest priority first:
 
 `dgconfig.py show` prints the merged result plus which layer each value came from.
 
+## Versioning
+
+Semver, with the meaningful question for this artifact being **"can the same document now
+produce a different design?"** The skills are prose instructions, so there is no API in
+the usual sense — a change to SKILL.md is a change to the program.
+
+- **MAJOR** — an installed project needs manual migration: the `.figma-design/config.json`
+  or `library-map.json` schema changes incompatibly, or a skill is renamed or removed.
+- **MINOR** — the same input can now produce a different design, or a new capability
+  lands. **Most changes here are minors**, including ones that look like doc edits: the
+  reference files are the decision logic.
+- **PATCH** — nothing about the built design changes. Wording, packaging, error message
+  text, a fix to a script that was outright failing.
+
+A prose-only change is not automatically a patch. Rewriting a rule in `inference.md` alters
+what gets built and is a minor; fixing a typo in the README is a patch.
+
+**1.0.0** is earned when the Figma build path has been validated end to end by people other
+than the author, and the config and library-map schemas have stopped moving. Until then the
+leading `0.` is doing real work — 0.x minors are allowed to break things, which several
+have.
+
+History note: 0.4.1 through 0.4.3 were released as patches but each changed generated
+output, so they should have been minors. Not worth renumbering; don't repeat it.
+
 ## Releasing
 
-Bump `version` in **both** `.claude-plugin/marketplace.json` and
-`plugin/.claude-plugin/plugin.json`, then commit and push. Don't push or publish unless
-asked — it changes what teammates receive.
+1. Bump `version` in **both** `.claude-plugin/marketplace.json` and
+   `plugin/.claude-plugin/plugin.json` — they must agree or `claude plugin tag` refuses.
+2. `claude plugin validate .`
+3. Commit and push.
+4. `claude plugin tag ./plugin --push -m "%s"` — creates and pushes
+   `figma-design-generator--v<version>`.
+
+Don't push, tag or publish unless asked — it changes what teammates receive.
 
 ## Testing
 
