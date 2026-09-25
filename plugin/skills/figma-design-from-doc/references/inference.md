@@ -120,17 +120,37 @@ Writers group content by topic, not by page section. Fix it yourself:
 - **Reorder** only for a real reason, and say so. A logo band belongs right after the hero
   even if the writer put it last; the order of argument sections is the writer's.
 
-## When the library has no component
+## When the library has no component for a section
+
+A design system rarely ships a component per page section. It ships **molecules** — a
+heading block, a card, an icon row, a logo strip — and expects sections to be *composed*
+from them. Composing is the normal path, not the fallback.
 
 In order:
 
-1. A different variant of a near component, if it genuinely fits the content.
-2. Build the section manually from frames and text, bound to library variables and text
-   styles. It will not be an instance — say so in the report.
-3. Leave a labelled placeholder frame at the right size.
+1. **A section-level component**, if one exists for this archetype.
+2. **A different variant** of a near component, if it genuinely fits the content.
+3. **Compose the section from smaller library components.** Build the section container
+   and its layout yourself — an auto-layout frame, a grid, a row — and fill it with
+   library instances. A `feature-grid` with no grid component is a frame containing a
+   `Heading Block` instance and N `Card` instances. This is a real design-system result:
+   every piece stays linked and updates with the library. Only the container is yours.
+4. **Build from primitives** — frames and text bound to library variables and text styles
+   — for the parts no component covers. Say in the report that these are not instances.
+5. **A labelled placeholder** only when the content itself is missing, or nothing in the
+   library gets close.
+
+Reach for 5 far less often than feels natural. A placeholder is right for *absent
+content*; it is the wrong answer to *absent component* when the library has the pieces to
+build one.
+
+Use `granularity` in `library-map.json` to see what is composable: `section` components
+stand alone, `molecule` components are what you compose from, `atom` components fill slots
+inside molecules. A component's own description often says which it is.
 
 Never force content into a component that changes its meaning — a three-item stat band
-rendered as feature cards reads as three features, not three numbers.
+rendered as feature cards reads as three features, not three numbers. Composing from
+molecules is not forcing; substituting a different section type is.
 
 ## Page rhythm
 

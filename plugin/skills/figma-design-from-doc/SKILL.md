@@ -203,6 +203,11 @@ for (const n of figma.currentPage.findAllWithCriteria({
     id: set.id,        // use this in local mode
     key: set.key,      // use this in published mode
     type: set.type,
+    // The description usually says what a piece is for ("shared molecule:
+    // heading with optional supporting paragraph"). Keep it -- it is the
+    // best signal for what composes with what.
+    description: set.description || "",
+    width: Math.round(set.width),
     properties: set.componentPropertyDefinitions,
     variants: set.type === "COMPONENT_SET"
       ? set.children.map(c => c.name) : null,
@@ -236,6 +241,18 @@ lists local variables directly.
 **Record both `id` and `key` for every component**, plus the resolved `mode`, in
 `library-map.json`. Which one you use in Step 6 depends on the mode.
 
+**Classify each component by granularity**, because it decides what you can compose:
+
+- `section` — stands alone as a whole page band. Usually near-full width, or named for a
+  page section.
+- `molecule` — a composable piece: a heading block, a card, an icon row, a logo strip.
+  Narrower than the content column, and its description often says so outright.
+- `atom` — a button, badge, avatar, icon. Fills a slot inside a molecule.
+
+Use the name, the `description` and the `width` together. Most design systems are mostly
+molecules, and a library with no `section` components is normal — it does not mean you
+fall back to primitives.
+
 **If a component key fails to import in published mode**, the library is unpublished. Do
 not fall back to hand-built frames — switch to local mode instead (build into the library
 file), which needs no publishing and produces real instances. Say so plainly.
@@ -251,8 +268,14 @@ Write the result to `.figma-design/library-map.json`:
   "discoveredAt": "2026-09-24",
   "components": {
     "Button": { "id": "12:34", "key": "abc123", "type": "COMPONENT_SET",
+                "granularity": "atom", "width": 120,
+                "description": "",
                 "properties": { "Label#2:0": "TEXT", "Variant": "VARIANT" },
-                "variants": ["Variant=Primary", "Variant=Secondary"] }
+                "variants": ["Variant=Primary", "Variant=Secondary"] },
+    "Heading Block": { "id": "12:99", "key": "def456", "type": "COMPONENT",
+                "granularity": "molecule", "width": 720,
+                "description": "Shared molecule: heading with optional supporting paragraph.",
+                "properties": { "Heading#1:0": "TEXT", "Show Subheading#3:0": "BOOLEAN" } }
   },
   "variables": { "surface/default": { "key": "...", "type": "COLOR" } },
   "styles": { "heading/xl": { "key": "...", "type": "TEXT" } },

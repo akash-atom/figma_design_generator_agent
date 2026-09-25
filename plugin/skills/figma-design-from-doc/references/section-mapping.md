@@ -22,8 +22,11 @@ A named brand inside a placeholder (`<zuora testimonial block>`) is *content*, n
 the component name — search for "testimonial", then fill Zuora's details from the section's
 copy. If the copy isn't in the doc, leave the component's own placeholder text and flag it.
 
-If nothing in the library matches, record it in `library-map.json` → `unmatched` and
-propose a manual build in the plan. **Do not substitute a component that merely looks
+If nothing in the library matches as a whole section, **compose one** from the library's
+molecules — a container frame you build, filled with `Heading Block`, `Card`, `Icon Row`
+instances. Record the composition in the plan ("Grid frame + Heading Block + 3 × Card")
+rather than calling it a manual build; the pieces are still real instances. Record a
+genuine gap in `library-map.json` → `unmatched`. **Do not substitute a component that merely looks
 close** — a detached approximation is worse than an honest gap.
 
 ## 2. The analyser's proposal
