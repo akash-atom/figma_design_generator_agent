@@ -440,6 +440,49 @@ is a decision they can overrule, which is the point.
   header and four identical light bands in a row. See
   `references/desktop-conventions.md` → Consistency across sections.
 
+## Step 6b — Leave a handoff a designer can work from
+
+The generated page is **not the finished design**. It goes to a designer who fills in
+product screenshots, media, backgrounds and anything the library couldn't supply. Build
+for that reader.
+
+**Name everything that needs a human consistently**, so it is findable in the layers panel
+and in search:
+
+```
+TODO / Media — product screenshot, 16:9
+TODO / Media — Atom grid visual
+TODO / Copy — Zuora testimonial quote
+TODO / Component — no logo wall in the library
+```
+
+Prefix is `TODO / `, then the kind (`Media`, `Copy`, `Component`), then what is needed.
+A designer can type `TODO` in the layers search and see every outstanding item.
+
+**Carry the writer's direction through.** Any `Note:` line or `<placeholder>` text from the
+document belongs on the frame it applies to — `Note: media on the left` and
+`<product screenshot> use the latest dashboard capture` are instructions aimed at exactly
+this person. Put them in the frame name, or in a caption text node inside the placeholder,
+not only in your terminal report where the designer will never see them.
+
+**Add a Dev Mode annotation where supported**, since it surfaces in the designer's
+inspector:
+
+```js
+if ("annotations" in node) {
+  node.annotations = [{ label: "Product screenshot — 16:9, from the launch deck" }];
+}
+```
+
+**Put a handoff list in the file itself.** After the page is built, add a frame beside it
+named `Handoff notes`, listing every TODO with its section, what's needed and why. The
+terminal report vanishes; the Figma file is what the designer actually opens. Keep the two
+consistent.
+
+**A placeholder is a specification, not a gap.** Size it to the media it stands in for so
+the layout reads correctly before anything lands, and say what belongs there. A correctly
+sized, clearly labelled empty frame is a finished handoff; an unlabelled grey box is not.
+
 ## Step 7 — Validate
 
 One `get_screenshot` of the wrapper frame. Check for:
@@ -463,7 +506,9 @@ One `get_screenshot` of the wrapper frame. Check for:
   can load the wrong font without erroring
 
 Apply targeted fixes, take one post-fix screenshot, then report the Figma URL, the section
-count, and anything you left as a placeholder or could not map.
+count, and the **handoff list** — every `TODO /` frame, grouped by kind, so the person
+passing this to a designer can see at a glance what is outstanding. Match it to the
+`Handoff notes` frame in the file.
 
 ---
 

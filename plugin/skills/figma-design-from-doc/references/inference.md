@@ -164,6 +164,18 @@ Once the archetypes are chosen, look at the sequence:
 - A run of five text-only sections is a page nobody scrolls. If the copy offers nothing to
   break it, say so rather than inventing a visual.
 
+## Who the output is for
+
+The generated page goes to a **designer**, who fills in product screenshots, media and
+backgrounds before it becomes a real design. That makes an honest, well-labelled gap
+genuinely more useful than a filled-in guess — the designer needs to see what is
+outstanding, not hunt for what you quietly approximated.
+
+It also means two things are worth more than they look: a placeholder sized to the media
+it stands in for, so the page reads correctly before the media arrives; and the writer's
+own instructions carried onto the frame, so direction survives the trip from document to
+canvas. See SKILL.md Step 6b.
+
 ## What to tell the user
 
 Present the plan as **decisions with reasons**, not questions:

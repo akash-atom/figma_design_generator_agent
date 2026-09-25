@@ -104,6 +104,17 @@ vertical padding. Empty space that was not designed reads as a bug.
 
 1. `upload_assets` it and set the returned hash as an `IMAGE` fill, or
 2. create a placeholder frame at the image's `widthPx` × `heightPx`, filled with a subtle
-   surface variable and labelled with the image's `alt` text or filename.
+   surface variable and named `TODO / Media — <what it is>`.
 
 State which one you did, per image, in the plan and in the final report.
+
+**Images in the source document are usually references, not final assets** — a screenshot
+pasted into a brief to show the idea. The page goes to a designer who replaces them with
+real product captures anyway, so option 2 is often the better answer even when the upload
+would work. Say which you chose and why; don't silently bake a low-resolution doc
+screenshot into the design as though it were final.
+
+Where the document implies media it doesn't contain — `<product screenshot>`, "image on
+the right" — leave a correctly proportioned `TODO / Media` frame rather than nothing. A
+sized, labelled slot tells the designer what the layout expects; an absent one makes the
+section look finished when it isn't.
