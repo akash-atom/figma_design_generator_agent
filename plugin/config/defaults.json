@@ -1,9 +1,10 @@
 {
-  "_comment": "Team-wide defaults shipped with the plugin. Lowest-priority config layer: a project .figma-design/config.json and ~/.claude/figma-design-generator/config.json both override this. To pin the team's default library, run /figma-library-setup once, copy the resolved libraryKey/libraryName here, bump the plugin version and push.",
+  "_comment": "Team-wide defaults shipped with the plugin. Lowest-priority config layer: a project .figma-design/config.json and ~/.claude/figma-design-generator/config.json both override this. The library below is published to the Atomicwork team, so teammates need no setup -- /figma-library-setup is only for pointing a project at a different design system. If the library is ever republished under a new key, update libraryKey here, bump the version in both manifests and push.",
   "library": {
-    "libraryKey": null,
-    "libraryName": null,
-    "libraryFileKey": null
+    "libraryKey": "lk-9f37e777be529a68a00e8439002d0609f104ec5abdbe890a8d193b13ddef9729c3a62bed85e853da3403c206160840d491158e5da55c314cee4db87297c3710e",
+    "libraryName": "Website components",
+    "libraryFileKey": null,
+    "mode": "published"
   },
   "desktop": {
     "frameWidth": 1440,
